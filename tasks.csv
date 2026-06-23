@@ -1,1 +1,4 @@
-id,title,course,deadline,priority,status,created_at,completed_at
+task_id,title,course_project,priority,status,deadline,created_at,completed_at
+1,Finish Streamlit layout,Project 02,High,Pending,2026-06-25,2026-06-23,
+2,Revise graph traversal,Efficient Algorithms,Medium,Completed,2026-06-22,2026-06-20,2026-06-22
+3,Prepare security quiz,Information Security,Low,Pending,2026-06-30,2026-06-23,
