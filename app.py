@@ -96,6 +96,49 @@ def add_task_form(tasks_df):
 
     return tasks_df
 
+
+def display_tasks(tasks):
+    st.subheader("Task List")
+
+    if tasks.empty:
+        st.info("No tasks yet. Add your first study task using the form above.")
+        return
+
+    visible_columns = [
+        "task_id",
+        "title",
+        "course_project",
+        "priority",
+        "status",
+        "deadline",
+        "created_at",
+    ]
+
+    existing_columns = [column for column in visible_columns if column in tasks.columns]
+
+    display_df = tasks[existing_columns].copy()
+
+    display_df = display_df.rename(
+        columns={
+            "task_id": "ID",
+            "title": "Task",
+            "course_project": "Course / Project",
+            "priority": "Priority",
+            "status": "Status",
+            "deadline": "Deadline",
+            "created_at": "Created",
+        }
+    )
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.caption(f"Showing {len(display_df)} saved task(s).")
+
+
 # Page setup
 st.set_page_config(
     page_title="Study Task Tracker",
@@ -190,17 +233,7 @@ with st.container():
 
 
 tasks = add_task_form(tasks)
-
-
-# Task table placeholder
-st.subheader("Task List")
-st.caption("This table uses preview data only. Real tasks will come from tasks.csv later.")
-
-st.dataframe(
-    preview_tasks,
-    use_container_width=True,
-    hide_index=True
-)
+display_tasks(tasks)
 
 
 # Chart placeholder
