@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from pathlib import Path
 from datetime import date
+from datetime import datetime
 
 TASKS_FILE = Path("tasks.csv")
 
@@ -139,6 +140,30 @@ def display_tasks(tasks):
     st.caption(f"Showing {len(display_df)} saved task(s).")
 
 
+def complete_task(tasks, task_id):
+    task_id = str(task_id)
+
+    task_match = tasks["task_id"].astype(str) == task_id
+
+    if not task_match.any():
+        return tasks, False
+
+    tasks.loc[task_match, "status"] = "Completed"
+    tasks.loc[task_match, "completed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    return tasks, True
+
+
+def delete_task(tasks, task_id):
+    task_id = str(task_id)
+
+    updated_tasks = tasks[tasks["task_id"].astype(str) != task_id].copy()
+
+    task_was_deleted = len(updated_tasks) < len(tasks)
+
+    return updated_tasks, task_was_deleted
+
+
 # Page setup
 st.set_page_config(
     page_title="Study Task Tracker",
@@ -234,6 +259,64 @@ with st.container():
 
 tasks = add_task_form(tasks)
 display_tasks(tasks)
+
+def task_actions(tasks):
+    st.subheader("Task Actions")
+
+    if tasks.empty:
+        st.info("No tasks available to complete or delete.")
+        return tasks
+
+    task_options = {}
+
+    for _, row in tasks.iterrows():
+        label = f"{row['task_id']} - {row['title']} ({row['status']})"
+        task_options[label] = row["task_id"]
+
+    selected_task_label = st.selectbox(
+        "Select a task",
+        options=list(task_options.keys()),
+        key="task_action_select"
+    )
+
+    selected_task_id = task_options[selected_task_label]
+
+    complete_col, delete_col = st.columns(2)
+
+    with complete_col:
+        if st.button("Mark as complete", key="complete_task_button"):
+            tasks, task_was_completed = complete_task(tasks, selected_task_id)
+
+            if task_was_completed:
+                save_tasks(tasks)
+                st.success("Task marked as complete.")
+                st.rerun()
+            else:
+                st.error("Task could not be found.")
+
+    with delete_col:
+        confirm_delete = st.checkbox(
+            "Confirm delete",
+            key="confirm_delete_checkbox"
+        )
+
+        if st.button(
+            "Delete task",
+            key="delete_task_button",
+            disabled=not confirm_delete
+        ):
+            tasks, task_was_deleted = delete_task(tasks, selected_task_id)
+
+            if task_was_deleted:
+                save_tasks(tasks)
+                st.success("Task deleted.")
+                st.rerun()
+            else:
+                st.error("Task could not be found.")
+
+    return tasks
+
+tasks = task_actions(tasks)
 
 
 # Chart placeholder
