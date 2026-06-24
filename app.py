@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from pathlib import Path
+from datetime import date
 
 TASKS_FILE = Path("tasks.csv")
 
@@ -42,6 +43,59 @@ def load_tasks():
 
     return tasks_df
 
+def get_next_task_id(tasks_df):
+    if tasks_df.empty:
+        return 1
+
+    task_ids = pd.to_numeric(tasks_df["task_id"], errors="coerce")
+
+    if task_ids.dropna().empty:
+        return 1
+
+    return int(task_ids.max()) + 1
+
+def add_task_form(tasks_df):
+    st.subheader("Add New Task")
+
+    with st.form("add_task_form", clear_on_submit=True):
+        title = st.text_input("Task title")
+        course_project = st.text_input("Course / Project")
+        priority = st.selectbox("Priority", ["Low", "Medium", "High"])
+        deadline = st.date_input("Deadline")
+
+        submitted = st.form_submit_button("Add Task")
+
+    if submitted:
+        title = title.strip()
+        course_project = course_project.strip()
+
+        if title == "":
+            st.error("Task title cannot be empty.")
+            return tasks_df
+
+        new_task = {
+            "task_id": get_next_task_id(tasks_df),
+            "title": title,
+            "course_project": course_project,
+            "priority": priority,
+            "status": "Pending",
+            "deadline": deadline.isoformat(),
+            "created_at": date.today().isoformat(),
+            "completed_at": "",
+        }
+
+        updated_tasks = pd.concat(
+            [tasks_df, pd.DataFrame([new_task])],
+            ignore_index=True
+        )
+
+        save_tasks(updated_tasks)
+        st.success("Task added and saved.")
+
+        return updated_tasks
+
+    return tasks_df
+
 # Page setup
 st.set_page_config(
     page_title="Study Task Tracker",
@@ -49,10 +103,11 @@ st.set_page_config(
     layout="wide"
 )
 
-tasks_df = load_tasks()
+tasks = load_tasks()
 
-# Temporary preview data for layout only.
-# This will be replaced later when CSV storage is added.
+
+# Temporary preview data for the task table.
+# This will be replaced in Step 05 Display Tasks.
 preview_tasks = pd.DataFrame(
     [
         {
@@ -134,19 +189,7 @@ with st.container():
     st.info("Calendar preview will appear here after deadline logic is added.")
 
 
-# Add task form placeholder
-st.subheader("Add New Task")
-
-with st.form("add_task_form"):
-    task_title = st.text_input("Task title")
-    course_project = st.text_input("Course / Project")
-    priority = st.selectbox("Priority", ["High", "Medium", "Low"])
-    deadline = st.date_input("Deadline")
-
-    submitted = st.form_submit_button("Add Task")
-
-    if submitted:
-        st.info("Form layout works. Saving tasks will be added in a later step.")
+tasks = add_task_form(tasks)
 
 
 # Task table placeholder
@@ -174,5 +217,5 @@ chart_data = pd.DataFrame(
 st.bar_chart(chart_data)
 
 with st.expander("CSV Storage Test"):
-    st.write(f"Loaded {len(tasks_df)} tasks from tasks.csv")
-    st.dataframe(tasks_df, use_container_width=True)
+    st.write(f"Loaded {len(tasks)} tasks from tasks.csv")
+    st.dataframe(tasks, use_container_width=True)
