@@ -1,6 +1,46 @@
 import pandas as pd
 import streamlit as st
+from pathlib import Path
 
+TASKS_FILE = Path("tasks.csv")
+
+TASK_COLUMNS = [
+    "task_id",
+    "title",
+    "course_project",
+    "priority",
+    "status",
+    "deadline",
+    "created_at",
+    "completed_at",
+]
+
+def create_empty_tasks_df():
+    return pd.DataFrame(columns=TASK_COLUMNS)
+
+
+def save_tasks(tasks_df):
+    tasks_df = tasks_df.reindex(columns=TASK_COLUMNS)
+    tasks_df.to_csv(TASKS_FILE, index=False)
+
+
+def load_tasks():
+    if not TASKS_FILE.exists() or TASKS_FILE.stat().st_size == 0:
+        empty_df = create_empty_tasks_df()
+        save_tasks(empty_df)
+        return empty_df
+
+    try:
+        tasks_df = pd.read_csv(TASKS_FILE, dtype=str)
+    except pd.errors.EmptyDataError:
+        empty_df = create_empty_tasks_df()
+        save_tasks(empty_df)
+        return empty_df
+
+    tasks_df = tasks_df.reindex(columns=TASK_COLUMNS)
+    tasks_df = tasks_df.fillna("")
+
+    return tasks_df
 
 # Page setup
 st.set_page_config(
@@ -9,6 +49,7 @@ st.set_page_config(
     layout="wide"
 )
 
+tasks_df = load_tasks()
 
 # Temporary preview data for layout only.
 # This will be replaced later when CSV storage is added.
@@ -131,3 +172,7 @@ chart_data = pd.DataFrame(
 )
 
 st.bar_chart(chart_data)
+
+with st.expander("CSV Storage Test"):
+    st.write(f"Loaded {len(tasks_df)} tasks from tasks.csv")
+    st.dataframe(tasks_df, use_container_width=True)
